@@ -16,22 +16,15 @@ where
     root: Option<*mut BTNode<T>>,
 }
 
-#[derive(PartialEq, Clone, Copy)]
-enum WalkType {
-    Pre,
-    In,
-    Post,
-}
-
 impl<T: Clone> Drop for BinaryTree<T> {
     fn drop(&mut self) {
         if let Some(tree) = self.root {
             unsafe {
                 let root_node = (*tree).clone();
-                let _left = BinaryTree {
+                let _left = Self {
                     root: root_node.left,
                 };
-                let _right = BinaryTree {
+                let _right = Self {
                     root: root_node.right,
                 };
             }
@@ -44,15 +37,14 @@ impl<T: Clone> BinaryTree<T> {
         Self { root: None }
     }
 
-    pub fn from_vec_pre(items: Vec<T>) -> Self {
+    pub fn from_vec_pre(items: &[T]) -> Self {
         let length = items.len();
         if length == 0 {
             Self::new()
         } else {
-            let plength = length;
             let skip = {
                 let mut result = 1;
-                while result * 2 <= plength {
+                while result * 2 <= length {
                     result *= 2;
                 }
                 result - 1
@@ -68,8 +60,8 @@ impl<T: Clone> BinaryTree<T> {
                 right_arr.push(items[i + 1].to_owned());
             }
             let right_arr = right_arr;
-            let left = Self::from_vec_pre(left_arr);
-            let right = Self::from_vec_pre(right_arr);
+            let left = Self::from_vec_pre(&left_arr);
+            let right = Self::from_vec_pre(&right_arr);
             let root_node = BTNode {
                 value: root_item,
                 left: left.root,
@@ -87,7 +79,7 @@ impl<T: Clone> BinaryTree<T> {
         let mut path = Vec::new();
         if let Some(curr) = self.root {
             unsafe {
-                Self::walk((*curr).clone(), &mut path, WalkType::Pre);
+                Self::pre_order(&(*curr).clone(), &mut path);
             };
         }
         path
@@ -97,7 +89,7 @@ impl<T: Clone> BinaryTree<T> {
         let mut path = Vec::new();
         if let Some(curr) = self.root {
             unsafe {
-                Self::walk((*curr).clone(), &mut path, WalkType::In);
+                Self::in_order(&(*curr).clone(), &mut path);
             };
         }
         path
@@ -107,33 +99,57 @@ impl<T: Clone> BinaryTree<T> {
         let mut path = Vec::new();
         if let Some(curr) = self.root {
             unsafe {
-                Self::walk((*curr).clone(), &mut path, WalkType::Post);
+                Self::post_order(&(*curr).clone(), &mut path);
             };
         }
         path
     }
 
-    fn walk(curr: BTNode<T>, path: &mut Vec<T>, walk: WalkType) {
-        //pre
-        if walk == WalkType::Pre {
-            path.push((curr).value.clone());
+    fn pre_order(curr: &BTNode<T>, path: &mut Vec<T>) {
+        path.push(curr.value.clone());
+
+        if let Some(left) = curr.left {
+            unsafe {
+                Self::pre_order(&*left, path);
+            }
         }
 
-        //recurse
-        unsafe {
-            if let Some(left) = curr.left {
-                Self::walk((*left).clone(), path, walk);
-            }
-            if walk == WalkType::In {
-                path.push((curr).value.clone());
-            }
-            if let Some(right) = curr.right {
-                Self::walk((*right).clone(), path, walk);
+        if let Some(right) = curr.right {
+            unsafe {
+                Self::pre_order(&*right, path);
             }
         }
-        //post
-        if walk == WalkType::Post {
-            path.push((curr).value);
+    }
+
+    fn in_order(curr: &BTNode<T>, path: &mut Vec<T>) {
+        if let Some(left) = curr.left {
+            unsafe {
+                Self::in_order(&*left, path);
+            }
         }
+
+        path.push(curr.value.clone());
+
+        if let Some(right) = curr.right {
+            unsafe {
+                Self::in_order(&*right, path);
+            }
+        }
+    }
+
+    fn post_order(curr: &BTNode<T>, path: &mut Vec<T>) {
+        if let Some(left) = curr.left {
+            unsafe {
+                Self::post_order(&*left, path);
+            }
+        }
+
+        if let Some(right) = curr.right {
+            unsafe {
+                Self::post_order(&*right, path);
+            }
+        }
+
+        path.push(curr.value.clone());
     }
 }
