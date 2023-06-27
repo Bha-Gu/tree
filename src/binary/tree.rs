@@ -43,26 +43,16 @@ impl<T: Clone> BinaryTree<T> {
         if length == 0 {
             Self::new()
         } else {
-            let skip = {
-                let mut result = 1;
-                while result * 2 <= length {
-                    result *= 2;
-                }
-                result - 1
-            };
             let root_item = items[0].to_owned();
-            let mut left_arr = vec![];
-            for i in 0..skip {
-                left_arr.push(items[i + 1].to_owned());
-            }
-            let left_arr = left_arr;
-            let mut right_arr = vec![];
-            for i in skip..length - 1 {
-                right_arr.push(items[i + 1].to_owned());
-            }
-            let right_arr = right_arr;
-            let left = Self::from_vec_pre(&left_arr);
-            let right = Self::from_vec_pre(&right_arr);
+            let half_length = if length % 2 == 1 {
+                (length - 1) / 2
+            } else {
+                length / 2
+            };
+            let left_arr = &items[1..=half_length];
+            let right_arr = &items[half_length + 1..];
+            let left = Self::from_vec_pre(left_arr);
+            let right = Self::from_vec_pre(right_arr);
             let root_node = BTNode {
                 value: root_item,
                 left: left.root,
