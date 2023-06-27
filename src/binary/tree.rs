@@ -81,10 +81,10 @@ impl<T: Clone> BinaryTree<T> {
                     if let Some(curr) = out.peek() {
                         let curr_node = (curr).clone();
                         if let Some(left) = curr_node.left {
-                            out.enqueue((*left).to_owned());
+                            out.enqueue((*left).clone());
                         }
                         if let Some(right) = curr_node.right {
-                            out.enqueue((*right).to_owned());
+                            out.enqueue((*right).clone());
                         }
                         if let Some(out) = out.dequeue() {
                             bfs.push(out.value);
