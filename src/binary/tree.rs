@@ -1,3 +1,5 @@
+use linked::queue::Queue;
+
 #[derive(Debug, Clone)]
 struct BTNode<T>
 where
@@ -19,15 +21,14 @@ where
 
 impl<T: Clone> Drop for BinaryTree<T> {
     fn drop(&mut self) {
-        if let Some(tree) = self.root {
+        if let Some(root) = self.root {
             unsafe {
-                let root_node = (*tree).clone();
-                let _left = Self {
-                    root: root_node.left,
-                };
-                let _right = Self {
-                    root: root_node.right,
-                };
+                println!("{root:?}");
+                let left = (*root).left;
+                let _ = Self { root: left };
+                let right = (*root).right;
+                let _ = Self { root: right };
+                drop(Box::from_raw(root));
             }
         }
     }
@@ -60,10 +61,40 @@ impl<T: Clone> BinaryTree<T> {
             };
             let box_node = Box::new(root_node);
             let raw_root = Box::into_raw(box_node);
+            std::mem::forget(left);
+            std::mem::forget(right);
             Self {
                 root: Some(raw_root),
             }
         }
+    }
+
+    pub fn breadth_first_search(&self) -> Vec<T> {
+        let mut bfs = Vec::new();
+
+        if let Some(root) = self.root {
+            let mut out = Queue::new();
+            unsafe {
+                let root_node = (*root).clone();
+                out.enqueue(root_node);
+                while out.length > 0 {
+                    if let Some(curr) = out.peek() {
+                        let curr_node = (curr).clone();
+                        if let Some(left) = curr_node.left {
+                            out.enqueue((*left).to_owned());
+                        }
+                        if let Some(right) = curr_node.right {
+                            out.enqueue((*right).to_owned());
+                        }
+                        if let Some(out) = out.dequeue() {
+                            bfs.push(out.value);
+                        }
+                    }
+                }
+            }
+        }
+
+        bfs
     }
 
     pub fn pre_order_search(&self) -> Vec<T> {

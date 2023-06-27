@@ -3,5 +3,13 @@
 version = 3
 
 [[package]]
+name = "linked"
+version = "0.1.0"
+source = "git+https://github.com/Bha-Gu/linked#6725c0c74a5817e28bff105fd6e54ebfcd0002c1"
+
+[[package]]
 name = "tree"
 version = "0.1.0"
+dependencies = [
+ "linked",
+]
