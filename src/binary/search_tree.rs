@@ -4,14 +4,14 @@ use linked::queue::Queue;
 #[derive(Debug, Clone)]
 struct BTNode<T>
 where
-    T: Clone + PartialEq,
+    T: std::fmt::Debug + Clone + PartialEq,
 {
     value: T,
     left: Option<*mut BTNode<T>>,
     right: Option<*mut BTNode<T>>,
 }
 
-impl<T: Clone + PartialEq> PartialEq for BTNode<T> {
+impl<T: std::fmt::Debug + Clone + PartialEq> PartialEq for BTNode<T> {
     fn eq(&self, other: &Self) -> bool {
         if self.value == other.value {
             match (self.left, self.right, other.left, other.right) {
@@ -29,14 +29,14 @@ impl<T: Clone + PartialEq> PartialEq for BTNode<T> {
 
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone)]
-pub struct BinaryTree<T>
+pub struct BinarySearchTree<T>
 where
-    T: Clone + PartialEq,
+    T: std::fmt::Debug + Clone + PartialEq + PartialOrd,
 {
     root: Option<*mut BTNode<T>>,
 }
 
-impl<T: Clone + PartialEq> PartialEq for BinaryTree<T> {
+impl<T: std::fmt::Debug + Clone + PartialEq + PartialOrd> PartialEq for BinarySearchTree<T> {
     fn eq(&self, other: &Self) -> bool {
         match (self.root, other.root) {
             (None, None) => true,
@@ -46,7 +46,7 @@ impl<T: Clone + PartialEq> PartialEq for BinaryTree<T> {
     }
 }
 
-impl<T: Clone + PartialEq> Drop for BinaryTree<T> {
+impl<T: std::fmt::Debug + Clone + PartialEq + PartialOrd> Drop for BinarySearchTree<T> {
     fn drop(&mut self) {
         if let Some(root) = self.root {
             unsafe {
@@ -60,57 +60,47 @@ impl<T: Clone + PartialEq> Drop for BinaryTree<T> {
     }
 }
 
-impl<T: Clone + PartialEq> BinaryTree<T> {
+impl<T: std::fmt::Debug + Clone + PartialEq + PartialOrd> BinarySearchTree<T> {
     pub const fn new() -> Self {
         Self { root: None }
     }
 
-    pub fn from_vec_order(items: &[T], order: DFSType) -> Self {
-        let length = items.len();
-        if length == 0 {
-            Self::new()
-        } else {
-            let half_length = if length % 2 == 1 {
-                (length - 1) / 2
-            } else {
-                length / 2
-            };
-            let (root_item, left_arr, right_arr) = match order {
-                DFSType::Pre => {
-                    let root_item = items[0].to_owned();
-                    let left_arr = &items[1..=half_length];
-                    let right_arr = &items[half_length + 1..];
-                    (root_item, left_arr, right_arr)
+    pub fn insert(&mut self, item: T) {
+        if let Some(root_pointer) = self.root.as_mut() {
+            unsafe {
+                let mut root_node = *root_pointer;
+                if item > (*root_node).value {
+                    let mut tmp_tree = Self {
+                        root: (*root_node).right,
+                    };
+                    Self::insert(&mut tmp_tree, item);
+                    (*root_node).right = tmp_tree.root;
+                    std::mem::forget(tmp_tree);
+                } else {
+                    let mut tmp_tree = Self {
+                        root: (*root_node).left,
+                    };
+                    Self::insert(&mut tmp_tree, item);
+                    (*root_node).left = tmp_tree.root;
+                    std::mem::forget(tmp_tree);
                 }
-                DFSType::In => {
-                    let root_item = items[half_length].to_owned();
-                    let left_arr = &items[0..half_length];
-                    let right_arr = &items[half_length + 1..];
-                    (root_item, left_arr, right_arr)
-                }
-                DFSType::Post => {
-                    let root_item = items[length - 1].to_owned();
-                    let left_arr = &items[0..half_length];
-                    let right_arr = &items[half_length..length - 1];
-                    (root_item, left_arr, right_arr)
-                }
-            };
-
-            let left = Self::from_vec_order(left_arr, order);
-            let right = Self::from_vec_order(right_arr, order);
-            let root_node = BTNode {
-                value: root_item,
-                left: left.root,
-                right: right.root,
-            };
-            let box_node = Box::new(root_node);
-            let raw_root = Box::into_raw(box_node);
-            std::mem::forget(left);
-            std::mem::forget(right);
-            Self {
-                root: Some(raw_root),
             }
+        } else {
+            let root = Some(Box::into_raw(Box::new(BTNode {
+                value: item,
+                left: None,
+                right: None,
+            })));
+            self.root = root;
         }
+    }
+
+    pub fn from_vec(items: &[T]) -> Self {
+        let mut out = Self::new();
+        for i in items {
+            out.insert(i.clone());
+        }
+        out
     }
 
     pub fn breadth_first_search(&self) -> Vec<T> {
@@ -126,9 +116,15 @@ impl<T: Clone + PartialEq> BinaryTree<T> {
                         let curr_node = curr;
                         if let Some(left) = curr_node.left {
                             out.enqueue((*left).clone());
+                            print!("Some({:?}) ", (*left).clone().value);
+                        } else {
+                            print!("None ");
                         }
                         if let Some(right) = curr_node.right {
                             out.enqueue((*right).clone());
+                            print!("Some({:?}) ", (*right).clone().value);
+                        } else {
+                            print!("None ");
                         }
                         if let Some(out) = out.dequeue() {
                             bfs.push(out.value);
@@ -137,7 +133,7 @@ impl<T: Clone + PartialEq> BinaryTree<T> {
                 }
             }
         }
-
+        println!();
         bfs
     }
 
